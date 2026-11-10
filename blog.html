@@ -23,13 +23,15 @@
   <script src="js/app.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("posts").innerHTML = BLOG.map((p) => `
-        <article class="panel blog-card">
-          <img src="${p.img}" alt="${p.titulo}">
-          <p class="page-subtitle" style="margin:0 0 6px">${p.fecha}</p>
-          <h3>${p.titulo}</h3>
-          <p>${p.extra}</p>
-        </article>`).join("");
+      if (typeof BLOG !== "undefined") {
+        document.getElementById("posts").innerHTML = BLOG.map((p) => `
+          <article class="panel blog-card">
+            <img src="${p.img}" alt="${p.titulo}">
+            <p class="page-subtitle" style="margin:0 0 6px">${p.fecha}</p>
+            <h3>${p.titulo}</h3>
+            <p>${p.extra}</p>
+          </article>`).join("");
+      }
     });
   </script>
 </body>

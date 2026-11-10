@@ -11,6 +11,10 @@ const ICONS = {
   arrow: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
 };
 
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 function getFavs() {
   try {
     return JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
@@ -46,8 +50,10 @@ function header(active) {
           <a class="btn btn-orange" href="registrarse.html">Registrarse</a>
         </div>
         <button class="menu-toggle" id="menuToggle" aria-label="Menú">☰</button>
+        <button id="btn-tema" class="btn-tema">🌙 Modo Oscuro</button>
       </div>
-    </header>`;
+    </header>
+  `;
 }
 
 function footer() {
@@ -98,6 +104,124 @@ function mountChrome(active) {
       document.getElementById("headerActions").classList.toggle("open");
     });
   }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("No se pudo cargar " + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureSupabase() {
+  if (typeof db !== "undefined") return true;
+  try {
+    if (!window.supabase) {
+      await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
+    }
+    if (typeof db === "undefined") await loadScript("js/supabase.js");
+  } catch (err) {
+    console.error(err);
+  }
+  return typeof db !== "undefined";
+}
+
+async function getSession() {
+  if (typeof db === "undefined") return null;
+  const { data } = await db.auth.getSession();
+  return data && data.session ? data.session : null;
+}
+
+function traducirError(m) {
+  if (!m) return "Ocurrió un error.";
+  if (/invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
+  if (/already registered/i.test(m)) return "Ese correo ya está registrado.";
+  if (/email not confirmed/i.test(m)) return "Confirma tu correo antes de ingresar (revisa tu bandeja).";
+  if (/password/i.test(m) && /6/.test(m)) return "La contraseña debe tener al menos 6 caracteres.";
+  return m;
+}
+
+async function actualizarHeaderSesion() {
+  const box = document.getElementById("headerActions");
+  if (!box) return;
+  const session = await getSession();
+  if (!session) return;
+  const nombre = (session.user.user_metadata && session.user.user_metadata.nombre) || session.user.email;
+  box.innerHTML = `
+    <span class="btn btn-ghost" title="${esc(session.user.email)}">${ICONS.user} ${esc(nombre)}</span>
+    <button class="btn btn-orange" id="btnSalir" type="button">Salir</button>`;
+  document.getElementById("btnSalir").addEventListener("click", async () => {
+    await db.auth.signOut();
+    location.href = "index.html";
+  });
+}
+
+async function cargarDestinosRemotos() {
+  if (typeof db === "undefined") return;
+
+  for (let i = DESTINOS.length - 1; i >= 0; i--) {
+    if (String(DESTINOS[i].id).startsWith("db-")) DESTINOS.splice(i, 1);
+  }
+
+  const { data, error } = await db.from("destinos").select("*").order("created_at");
+  if (error || !data) {
+    console.error("Error al cargar destinos:", error && error.message);
+    return;
+  }
+
+  data.forEach((r) =>
+    DESTINOS.push({
+      id: "db-" + r.id,
+      nombre: esc(r.nombre),
+      region: r.region,
+      lugar: r.lugar || "Perú",
+      rating: Number(r.calificacion) || 0,
+      precio: Number(r.precio) || 0,
+      duracion: r.duracion,
+      imagen: esc(r.imagen_url || "img/plaza.jpg"),
+      desc: esc(r.descripcion || "")
+    })
+  );
+}
+
+function initFormDestino(onSaved) {
+  const form = document.getElementById("dest-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("f-msg");
+
+    if (typeof db === "undefined") {
+      msg.textContent = "Error: no se cargó la conexión a Supabase.";
+      return;
+    }
+
+    msg.style.color = "";
+    msg.textContent = "Guardando...";
+    const { error } = await db.from("destinos").insert([
+      {
+        nombre: document.getElementById("f-nombre").value.trim(),
+        region: document.getElementById("f-region").value,
+        precio: Number(document.getElementById("f-precio").value),
+        duracion: document.getElementById("f-duracion").value,
+        calificacion: Number(document.getElementById("f-rating").value),
+        descripcion: document.getElementById("f-desc").value.trim(),
+        imagen_url: document.getElementById("f-img").value.trim() || "img/plaza.jpg"
+      }
+    ]);
+
+    if (error) {
+      msg.textContent = "Error: " + error.message;
+      return;
+    }
+    msg.textContent = "Destino guardado ✔";
+    form.reset();
+    if (onSaved) onSaved();
+  });
 }
 
 function syncRangeFill() {
@@ -265,11 +389,19 @@ function initCatalog() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
+  initFormDestino(async () => {
+    await cargarDestinosRemotos();
+    document.getElementById("clear").click();
+  });
+  cargarDestinosRemotos().then(render);
+
   syncRangeFill();
   render();
 }
 
-function initDetail() {
+async function initDetail() {
+  await cargarDestinosRemotos();
+
   const id = new URLSearchParams(location.search).get("id");
   const d = DESTINOS.find((x) => x.id === id) || DESTINOS[0];
   document.getElementById("d-img").src = d.imagen;
@@ -282,42 +414,142 @@ function initDetail() {
   document.getElementById("d-dur").textContent = `${d.duracion} días`;
   document.title = `${d.nombre} · Andes Travel`;
   const form = document.getElementById("book-form");
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    document.getElementById("book-msg").classList.add("show");
-    document.getElementById("book-msg").textContent =
-      "Solicitud enviada. Un asesor te contactará para confirmar disponibilidad.";
+    const msg = document.getElementById("book-msg");
+    msg.classList.add("show");
+
+    if (typeof db === "undefined") {
+      msg.textContent = "Error: no se cargó la conexión a Supabase.";
+      return;
+    }
+
+    msg.textContent = "Enviando...";
+    const { error } = await db.from("reservas").insert([{
+      destino: d.nombre,
+      fecha_salida: form.querySelector("input[type=date]").value || null,
+      viajeros: Number(form.querySelector("input[type=number]").value) || 1,
+      nombre: form.querySelector("input[type=text]").value.trim(),
+      correo: form.querySelector("input[type=email]").value.trim()
+    }]);
+
+    msg.textContent = error
+      ? "Error: " + error.message
+      : "Solicitud enviada. Un asesor te contactará para confirmar disponibilidad.";
+    if (!error) form.reset();
   });
 }
 
 function initAuth(kind) {
   const form = document.getElementById("auth-form");
-  form.addEventListener("submit", (e) => {
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("auth-msg");
     msg.classList.add("show");
-    msg.textContent =
-      kind === "in"
-        ? "Sesión iniciada (demo). Bienvenido a Andes Travel."
-        : "Cuenta creada (demo). Ya puedes explorar destinos.";
+
+    if (typeof db === "undefined") {
+      msg.textContent = "Error: no se cargó la conexión a Supabase.";
+      return;
+    }
+
+    const emailInput = form.querySelector("input[type=email]");
+    const email = emailInput ? emailInput.value.trim() : "";
+    const passwordInput = form.querySelector("input[type=password]");
+    const password = passwordInput ? passwordInput.value : "";
+
+    if (kind === "in") {
+      msg.textContent = "Ingresando...";
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) { msg.textContent = traducirError(error.message); return; }
+      msg.textContent = "Sesión iniciada. Redirigiendo...";
+      setTimeout(() => (location.href = "index.html"), 700);
+      return;
+    }
+
+    const nameInput = form.querySelector("input[type=text]") || form.querySelectorAll("input")[0];
+    const nombre = nameInput ? nameInput.value.trim() : "";
+
+    msg.textContent = "Creando cuenta...";
+    const { data, error } = await db.auth.signUp({
+      email,
+      password,
+      options: { data: { nombre } }
+    });
+    if (error) { msg.textContent = traducirError(error.message); return; }
+
+    if (data.session) {
+      msg.textContent = "Cuenta creada. Redirigiendo...";
+      setTimeout(() => (location.href = "index.html"), 700);
+    } else {
+      msg.textContent = "Cuenta creada. Revisa tu correo para confirmarla y luego ingresa.";
+    }
   });
 }
 
 function initContact() {
-  document.getElementById("contact-form").addEventListener("submit", (e) => {
+  const form = document.getElementById("contact-form");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("contact-msg");
     msg.classList.add("show");
-    msg.textContent = "Mensaje enviado. Te responderemos en menos de 24 horas.";
+
+    if (typeof db === "undefined") {
+      msg.textContent = "Error: no se cargó la conexión a Supabase.";
+      return;
+    }
+
+    const inputsText = form.querySelectorAll("input:not([type=email])");
+    const area = form.querySelector("textarea");
+
+    msg.textContent = "Enviando...";
+    const { error } = await db.from("mensajes_contacto").insert([{
+      nombre: inputsText[0] ? inputsText[0].value.trim() : "",
+      correo: form.querySelector("input[type=email]").value.trim(),
+      asunto: inputsText[1] ? inputsText[1].value.trim() : "",
+      mensaje: area ? area.value.trim() : ""
+    }]);
+
+    msg.textContent = error
+      ? "Error: " + error.message
+      : "Mensaje enviado. Te responderemos en menos de 24 horas.";
+    if (!error) form.reset();
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initTema() {
+  const btn = document.getElementById('btn-tema');
+  if (!btn) return;
+
+  const body = document.body;
+
+  if (localStorage.getItem('tema') === 'oscuro') {
+    body.classList.add('oscuro');
+    btn.textContent = '☀️ Modo Claro';
+  }
+
+  btn.addEventListener('click', () => {
+    body.classList.toggle('oscuro');
+    if (body.classList.contains('oscuro')) {
+      btn.textContent = '☀️ Modo Claro';
+      localStorage.setItem('tema', 'oscuro');
+    } else {
+      btn.textContent = '🌙 Modo Oscuro';
+      localStorage.setItem('tema', 'claro');
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   const page = document.body.dataset.page;
   mountChrome(page);
+  initTema();
+  await ensureSupabase();
+  actualizarHeaderSesion();
   if (page === "destinos") initCatalog();
   if (page === "destino") initDetail();
   if (page === "ingresar") initAuth("in");
-  if (page === "registro") initAuth("up");
+  if (page === "registro" || page === "registrarse") initAuth("up");
   if (page === "contacto") initContact();
 });

@@ -10,14 +10,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <style>
-    .registro-destinos { background:#fff; border-radius:16px; padding:24px; margin:0 0 24px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
-    .registro-destinos h2 { margin:0 0 4px; }
-    .registro-destinos .campo { margin-bottom:14px; display:flex; flex-direction:column; gap:6px; }
-    .registro-destinos label { font-weight:500; }
-    .registro-destinos input, .registro-destinos select, .registro-destinos textarea { padding:10px 12px; border:1px solid #cfd6dd; border-radius:10px; font:inherit; }
-    .registro-destinos button { padding:10px 18px; border:0; border-radius:10px; font:inherit; font-weight:600; cursor:pointer; margin-right:8px; background:#f26a1b; color:#fff; }
-    .registro-destinos .btn-limpiar { background:#e5e9ee; color:#333; }
-    #mensajeFormulario { margin-top:12px; font-weight:500; }
+    #dest-form { margin-bottom: 24px; padding: 20px; }
+    #dest-form label { display: block; margin-bottom: 12px; font-weight: 500; }
+    #dest-form input, #dest-form select, #dest-form textarea {
+      display: block; width: 100%; margin-top: 4px; padding: 10px 12px;
+      border: 1px solid #d5dbe1; border-radius: 8px; font: inherit;
+    }
+    #dest-form textarea { min-height: 70px; }
+    #f-msg { margin-top: 10px; font-weight: 500; }
   </style>
 </head>
 <body data-page="destinos">
@@ -76,73 +76,47 @@
               <option value="rating">Mejor calificación</option>
             </select>
           </div>
+
+          <form id="dest-form" class="filters">
+            <h2>Agregar destino</h2>
+            <label>Nombre del destino:
+              <input id="f-nombre" required>
+            </label>
+            <label>Región:
+              <select id="f-region">
+                <option>Costa</option>
+                <option>Sierra</option>
+                <option>Selva</option>
+              </select>
+            </label>
+            <label>Precio por persona (S/):
+              <input id="f-precio" type="number" min="1" required>
+            </label>
+            <label>Duración:
+              <select id="f-duracion">
+                <option value="1-2">1-2 días</option>
+                <option value="3-4">3-4 días</option>
+                <option value="5-7">5-7 días</option>
+                <option value="8+">8 días o más</option>
+              </select>
+            </label>
+            <label>Calificación:
+              <input id="f-rating" type="number" min="1" max="5" step="0.1" value="4.5" required>
+            </label>
+            <label>Descripción:
+              <textarea id="f-desc"></textarea>
+            </label>
+            <label>Ruta de la imagen (ej. img/plaza.jpg):
+              <input id="f-img" value="img/plaza.jpg">
+            </label>
+            <button type="submit" class="btn btn-orange">Guardar destino</button>
+            <p id="f-msg"></p>
+          </form>
+
           <div class="results-meta">
-            <span class="results-count" id="count">24 destinos encontrados</span>
+            <span class="results-count" id="count">Calculando destinos...</span>
             <div class="chips" id="chips"></div>
           </div>
-
-          <!-- FORMULARIO PARA REGISTRAR DESTINOS -->
-          <div class="registro-destinos">
-            <h2>Registrar nuevo destino turístico</h2>
-            <p>Completa los datos para guardar un nuevo destino.</p>
-
-            <form id="formDestino">
-
-              <div class="campo">
-                <label for="nombre">Nombre del destino:</label>
-                <input type="text" id="nombre" placeholder="Ejemplo: Machu Picchu" required>
-              </div>
-
-              <div class="campo">
-                <label for="region">Región:</label>
-                <select id="region" required>
-                  <option value="">Seleccionar región</option>
-                  <option value="Costa">Costa</option>
-                  <option value="Sierra">Sierra</option>
-                  <option value="Selva">Selva</option>
-                </select>
-              </div>
-
-              <div class="campo">
-                <label for="precio">Precio por persona (S/):</label>
-                <input type="number" id="precio" min="0" step="0.01" placeholder="Ejemplo: 350" required>
-              </div>
-
-              <div class="campo">
-                <label for="duracion">Duración:</label>
-                <select id="duracion" required>
-                  <option value="">Seleccionar duración</option>
-                  <option value="1-2">1-2 días</option>
-                  <option value="3-4">3-4 días</option>
-                  <option value="5-7">5-7 días</option>
-                  <option value="8+">8 días o más</option>
-                </select>
-              </div>
-
-              <div class="campo">
-                <label for="calificacion">Calificación:</label>
-                <input type="number" id="calificacion" min="0" max="5" step="0.1" placeholder="Ejemplo: 4.8" required>
-              </div>
-
-              <div class="campo">
-                <label for="descripcion">Descripción:</label>
-                <textarea id="descripcion" rows="4" placeholder="Describe el destino turístico..." required></textarea>
-              </div>
-
-              <div class="campo">
-                <label for="imagen">URL de la imagen:</label>
-                <input type="url" id="imagen" placeholder="https://ejemplo.com/imagen.jpg">
-              </div>
-
-              <button type="submit" id="btnGuardar">Guardar destino</button>
-              <button type="reset" class="btn-limpiar">Limpiar formulario</button>
-
-              <p id="mensajeFormulario" role="status"></p>
-
-            </form>
-          </div>
-          <!-- FIN DEL FORMULARIO -->
-
           <div class="cards" id="cards"></div>
           <div class="pagination" id="pagination"></div>
         </section>
@@ -151,48 +125,9 @@
   </main>
   <div id="site-footer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
-
-  <!-- SUPABASE -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-  <script>
-    // Reemplaza estos dos valores con los de Supabase (Project Settings → API)
-   const SUPABASE_URL = "https://rgjmmtcjgchasrtxbnzp.supabase.co";
-   const SUPABASE_KEY = "sb_publishable_...tu clave completa...";
-
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    document.getElementById("formDestino").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("mensajeFormulario");
-      const btn = document.getElementById("btnGuardar");
-      msg.textContent = "Guardando...";
-      btn.disabled = true;
-
-      try {
-        const { error } = await sb.from("destinos").insert({
-          nombre: document.getElementById("nombre").value.trim(),
-          region: document.getElementById("region").value,
-          precio: Number(document.getElementById("precio").value),
-          duracion: document.getElementById("duracion").value,
-          calificacion: Number(document.getElementById("calificacion").value),
-          descripcion: document.getElementById("descripcion").value.trim(),
-          imagen: document.getElementById("imagen").value.trim() || null
-        });
-
-        if (error) {
-          msg.textContent = "Error: " + error.message;
-        } else {
-          msg.textContent = "Destino guardado correctamente.";
-          e.target.reset();
-        }
-      } catch (err) {
-        msg.textContent = "Error de conexión: " + err.message;
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  </script>
 </body>
 </html>

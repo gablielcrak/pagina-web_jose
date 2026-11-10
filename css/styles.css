@@ -76,7 +76,7 @@ textarea {
 .header-inner {
   height: 100%;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 24px;
 }
@@ -989,4 +989,156 @@ textarea {
   .toolbar {
     flex-direction: column;
   }
+}
+
+/* Modo oscuro y botón de tema */
+.btn-tema {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #f0f0f0;
+  color: #222;
+  font-weight: 600;
+  font-size: 12.5px;
+  margin-left: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-tema:hover {
+  background: #e0e0e0;
+  transform: scale(1.05);
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.oscuro {
+  --bg: #121212;
+  --card: #1e1e1e;
+  --text: #e0e0e0;
+  --muted: #a0a0a0;
+  --border: #333;
+  --navy: #1e1e1e;
+  --navy-deep: #1a1a1a;
+  --navy-hover: #333;
+  --teal-soft: #1a2e2d;
+  --chip: #1a2e2d;
+  --chip-text: #7dd3d0;
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+body.oscuro .site-header,
+body.oscuro .site-footer {
+  background-color: #1a1a1a !important;
+}
+
+body.oscuro .card,
+body.oscuro .filters,
+body.oscuro .panel,
+body.oscuro .booking,
+body.oscuro .auth-card,
+body.oscuro .empty {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border-color: #333 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.oscuro .page-title,
+body.oscuro .filters-head h2,
+body.oscuro .card-title,
+body.oscuro .panel h3,
+body.oscuro .auth-card h1,
+body.oscuro .hero-band h1 {
+  color: #e0e0e0 !important;
+}
+
+body.oscuro .page-subtitle,
+body.oscuro .card-loc,
+body.oscuro .card-from,
+body.oscuro .results-count,
+body.oscuro .price-labels,
+body.oscuro .auth-card p.lead {
+  color: #a0a0a0 !important;
+}
+
+body.oscuro .card-title a {
+  color: #e0e0e0 !important;
+}
+
+body.oscuro .search input,
+body.oscuro .sort,
+body.oscuro .field input,
+body.oscuro .field textarea,
+body.oscuro .field select {
+  background-color: #2a2a2a !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+body.oscuro .check input {
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+}
+
+body.oscuro .check {
+  color: #e0e0e0 !important;
+}
+
+body.oscuro .filter-group h3 {
+  color: #e0e0e0 !important;
+}
+
+body.oscuro .range-rail {
+  background: #333 !important;
+}
+
+body.oscuro .btn-clear {
+  color: #7dd3d0 !important;
+}
+
+body.oscuro .btn-tema {
+  background-color: #f0f0f0 !important;
+  color: #222 !important;
+}
+
+body.oscuro .page-btn {
+  background: #2a2a2a !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+body.oscuro .page-btn.active {
+  background: #0c3d62 !important;
+  border-color: #0c3d62 !important;
+  color: #fff !important;
+}
+
+body.oscuro a:hover {
+  color: #90caf9 !important;
+}
+
+body.oscuro .nav-links a {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.oscuro .nav-links a:hover,
+body.oscuro .nav-links a.active {
+  color: #fff;
+}
+
+body.oscuro .footer-col a {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.oscuro .footer-col a:hover {
+  color: #fff;
+}
+
+body.oscuro .socials a {
+  color: #fff;
 }
